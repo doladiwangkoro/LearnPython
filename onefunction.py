@@ -14,16 +14,7 @@ import threading
 import time
 
 
-connection = {
-'node1':[0,1,1],
-'node2':[1,0,1],
-'node3':[1,1,0]} #save for later
-
-""""connection = {
-'node1':[0,1],
-'node2':[1,0]
-}"""
-
+#setup for initial voltage and power (later to be initial parameters)
 def init(x,y):
     p = {
     'voltage' : [x],
@@ -31,6 +22,8 @@ def init(x,y):
     }
     return p
 
+#setup for the three nodes
+#This are variables that we can set, however, usually this value are all zeros for our optimization case
 def setup():
     a = init(5,0)
     b = init(10,0)
@@ -42,29 +35,78 @@ def setup():
 def callthisnode(n):
     this = int(n[4]) - 1 #getting index for allnode
     return allnode[this]
-    
   
 
-#sigma calculation for all nodes connected to node n and k is the kth element of the array
+#sigma calculation for all nodes connected to node n and k is the (k+1)th update since k starts from zero
 def callothernode(n,k):
     othernodesum = {
     'voltage sum':[],
-    'power sum':[]}
-    vsum = 0
+    'power sum':[]} #dictionary preparation
+    vsum = 0 #initial value for the voltage
     for i in range(len(connection[n])):
         con = connection[n][i] #check if node n is connected to the other node, con=0 (disconnected) or 1 (connected)
         vsum = vsum + con*allnode[i]['voltage'][k]  #summation of voltage value
-    othernodesum['voltage sum'].insert(k+1,vsum)
+    othernodesum['voltage sum'].insert(k+1,vsum) #the value will be stored in the dictionary
     return othernodesum
         
         
 #n is the node and k is number of iterations
-#def function(n,k):
-
+def function(n,k):
+    for i in range(k):
+        time.sleep(0.1) #delay so the function can run simultaneously without any conflicting updates
+        thisnode = callthisnode(n) #the nodes that we want to examine
+        #print(thisnode) #prove of value (will be commented next time) 
+        othernode = callothernode(n,i) #calling other node for summation calculation
+        #print(othernode) #prove of value (will be commented next time) 
+        voltagei = thisnode['voltage'][i] #value setting of the node n
+        #print(voltagei) 
+        voltageiother = othernode['voltage sum'][0] #summation of other's node voltage connected to the node n
+        #print(voltageiother)
+        newvoltage = voltagei+2*voltageiother #voltage calculation
+        #print(newvoltage)
+        thisnode['voltage'].insert(i+1,newvoltage) #updating voltage value 
+        #print(thisnode)
+    
     
 #Below is how this program should run chronologically
 
+def main(n,k):
+
+    t1= threading.Thread(target = function, args = ('node1',k))
+    t2= threading.Thread(target = function, args = ('node2',k))
+    t3= threading.Thread(target = function, args = ('node3',k))
+    
+    t1.start()
+    t2.start()
+    t3.start()
+    
+    t1.join()
+    t2.join()
+    t3.join()
+    
+    print (allnode[int(n[4]) - 1]['voltage'])
+    
+#adjacency matrix or how the nodes are connected
+connection = {
+'node1':[0,1,1],
+'node2':[1,0,1],
+'node3':[1,1,0]} 
+
 allnode = setup()
+main('node2',3)
+
+
+
+
+
+
+
+
+"""
+
+Running Draft
+
+_______________ooooo__________________
 
 thisnode = callthisnode('node1')
 othernode = callothernode('node1',0)
@@ -129,25 +171,6 @@ voltagei = thisnode3['voltage'][2]
 voltageiother = othernode3['voltage sum'][0]
 newvoltage = voltagei+2*voltageiother
 thisnode3['voltage'].insert(3,newvoltage)
-
-    
 """
-t1= threading.Thread(target = function, args = ('node1',5))
-t2= threading.Thread(target = function, args = ('node2',5))
-
-t1.start()
-t2.start()
-
-t1.join()
-t2.join()
-"""
-
-
-#lastelementa = a['voltage'][len(a['voltage'])-1]
-#lastelementb = b['voltage'][len(b['voltage'])-1]
-    
-#print('parameter node a',lastelementa)
-#print('parameter node b',lastelementb)
-    
 
 
