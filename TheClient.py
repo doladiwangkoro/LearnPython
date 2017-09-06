@@ -9,7 +9,9 @@ import socket
 import json
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(('145.94.184.28',5650))
+
+s.connect(('145.94.187.31',5650))
+print('connected to a server')
 
 
 hello = input("Say hello: ") #client input as strings

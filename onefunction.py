@@ -45,7 +45,7 @@ def callothernode(n,k):
     vsum = 0 #initial value for the voltage
     for i in range(len(connection[n])):
         con = connection[n][i] #check if node n is connected to the other node, con=0 (disconnected) or 1 (connected)
-        vsum = vsum + con*allnode[i]['voltage'][k]  #summation of voltage value
+        vsum = vsum + con*allnode[i]['voltage'][k]  #allnode[i]['voltage'][k] is how the voltage from other node is summoned #summation of voltage value
     othernodesum['voltage sum'].insert(k+1,vsum) #the value will be stored in the dictionary
     return othernodesum
         
@@ -93,7 +93,7 @@ connection = {
 'node3':[1,1,0]} 
 
 allnode = setup()
-main('node2',3)
+main('node3',10)
 
 
 
