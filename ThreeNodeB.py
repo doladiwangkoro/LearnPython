@@ -14,6 +14,7 @@ from queue import Queue
 N = 2
 queue = Queue()
 N_job = [1,2]
+all_address = []
 
 parameter = {
         'voltage':[10]
@@ -34,60 +35,61 @@ def create_workers():
         t.start()
         
 def work():
-    while True:
-        x = queue.get()
-        if x == 1:
-            s = socket.socket()
-            host = ''
-            port = 23456
-            s.bind((host,port))
+    #while True:
+    x = queue.get()
+    if x == 1:
+        s = socket.socket()
+        host = ''
+        port = 23456
+        s.bind((host,port))
 
-            s.listen(5)
-            while True:
-                conn, addr = s.accept()
-                print('Got connection from: ',addr)
-                data = conn.recv(1024)
+        s.listen(5)
+        while len(all_address) < 2:
+            conn, addr = s.accept()
+            all_address.append(addr)
+            print('Got connection from: ',addr)
+            data = conn.recv(1024)
+            data = data.decode('utf-8')
+            jason = json.loads(data)
+            print('received from client: ', jason)
+            
+            fromnodeC['voltage'].insert(0,jason['voltage'][0])
+            
+            jasonstr = json.dumps(parameter)
+            conn.send(str.encode(jasonstr))
+            print("sent to client ",jasonstr)
+            #conn.close()
+        
+    if x == 2:
+        s = socket.socket()
+        host = '127.0.0.1'
+        port = 12345
+        while True:
+            try:
+                s.connect((host,port))
+                jasonstr = json.dumps(parameter)
+                s.send(str.encode(jasonstr))
+                print("sent to server ",jasonstr)
+                
+                data = s.recv(1024)
                 data = data.decode('utf-8')
                 jason = json.loads(data)
-                print('received from client: ', jason)
+                print('received from server: ', jason)
                 
-                fromnodeC['voltage'].insert(0,jason['voltage'][0])
+                fromnodeA['voltage'].insert(0,jason['voltage'][0])
                 
-                jasonstr = json.dumps(parameter)
-                conn.send(str.encode(jasonstr))
-                print("sent to client ",jasonstr)
-                conn.close()
-            
-        if x == 2:
-            s = socket.socket()
-            host = '127.0.0.1'
-            port = 12345
-            while True:
-                try:
-                    s.connect((host,port))
-                    jasonstr = json.dumps(parameter)
-                    s.send(str.encode(jasonstr))
-                    print("sent to server ",jasonstr)
-                    
-                    data = s.recv(1024)
-                    data = data.decode('utf-8')
-                    jason = json.loads(data)
-                    print('received from server: ', jason)
-                    
-                    fromnodeA['voltage'].insert(0,jason['voltage'][0])
-                    
-                    
-                    s.close()
-                except:
-                    time.sleep(10)
-                    print("waiting for server")
-                    continue
-                else:
-                    break
-            
-            
+                
+                #s.close()
+            except:
+                time.sleep(10)
+                print("waiting for server")
+                continue
+            else:
+                break
+        
+        
 
-        queue.task_done()
+    queue.task_done()
         
 def create_jobs():
     for x in N_job:

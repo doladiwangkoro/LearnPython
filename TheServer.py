@@ -12,7 +12,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('',5650))
 print("Listening ...") #waiting for a connection
 
-s.listen(1)
+s.listen(10)
 
 connection, address = s.accept() #accepting connection from a client 
 print("Connected to the client", address)
