@@ -10,7 +10,7 @@ import json
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.connect(('145.94.187.31',5650))
+s.connect(('127.0.0.1',5567))
 print('connected to a server')
 
 

@@ -9,17 +9,21 @@ Node 2 as the client
 
 import socket
 import json
+import time
 
-host = '145.94.187.31'
+host = '127.0.0.1'
 port = 5560
 
 def setupserver():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("socket created")
-    try:
-        s.connect((host,port))
-    except socket.error as msg:
-        print(msg)
+    while True:
+        try:
+            s.connect((host,port))
+        except:
+            continue
+        else:
+            break
     print("Connected to node 1")
     return s
 
