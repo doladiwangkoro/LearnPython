@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Sep 14 14:27:49 2017
+Created on Mon Sep 18 11:08:00 2017
 
 @author: D M Dolaputra
 """
-
 import socket
 import threading
 import json
 import time
 from queue import Queue
+
 
 t = 5 #delay time to avoid conflicting data
 t1 = 0
@@ -17,12 +17,12 @@ queue = Queue()
 all_addresses = [] #all addresses from the connected nodes
 all_connections = [] #all connection from the connected nodes (to perform server-client data transfer)
 all_client_sockets = [] #sockets prepared for a client to connect to multiple servers
-node = 'node3' #observed node (vary for each file)
+node = 'node4' #observed node (vary for each file)
 num_iteration = 5 #expected number of iterations
 
 #this node initial parameters (vary for each file)
 parameter = {
-        'voltage':[2]
+        'voltage':[3]
         }
 
 #json for storing other connected nodes' parameters
@@ -31,7 +31,7 @@ parameterother = {}
 # All nodes' addresses 
 addresses = [('127.0.0.1',12345), ('127.0.0.1',23456), ('127.0.0.1',34567), ('127.0.0.1',45678)]
 # How this node is connected to the other nodes (vary for each file)
-connectivity = [0, 1, 0, 1]
+connectivity = [1, 0, 1, 0]
 
 #counting how many connections
 def count_one():
