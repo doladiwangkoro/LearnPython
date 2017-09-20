@@ -5,6 +5,8 @@ Created on Thu Sep 14 19:34:12 2017
 @author: D M Dolaputra
 """
 
+import time
+
 def main_node(thenode):
 
     import socket
@@ -252,3 +254,7 @@ def main_node(thenode):
     print('voltage: ',parameter['voltage'][i])
     print('power: ',parameter['power'][i])
     print('lambda: ',parameter['lambda'][i])
+    time.sleep(30)
+
+
+
