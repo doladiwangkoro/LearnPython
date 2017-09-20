@@ -63,26 +63,27 @@ def work():
         s.bind(thisnode(node))
 
         s.listen(5)
-        while True:
+        i = 0
+        while i < 2:
             conn, addr = s.accept()
             all_addresses.append(addr)
             all_connections.append(conn)
             print('Got connection from: ',addr)
             
     if x == 2:
-        b = 0
-        while b < 5:
+        a = 0
+        while a < 5:
             try:
                 data1 = all_connections[0].recv(2048)
-                print("data1 received")
+                print("data1 received",data1)
                 data1 = data1.decode('utf-8')
-                print("data1 decoded")
+                print("data1 decoded",data1)
                 jason1 = json.loads(data1)
                 print("data1loaded")
                 print('received from client' + str(all_addresses[0]) + ': ', jason1)
-                parameterother['node'+ str(othernode(node)[0])]['voltage'].insert(b,jason1['voltage'][b])
+                parameterother['node'+ str(othernode(node)[0])]['voltage'].insert(a,jason1['voltage'][a])
                 print(parameterother)
-                b = b+1
+                a = a+1
                 #print(b)
             except Exception as msg:
                 #lock.release()
@@ -92,34 +93,64 @@ def work():
             
             
     if x == 3:
-        c = 0
-        while c < 5:
+        b = 0
+        while b < 5:
             try:
                 data2 = all_connections[1].recv(2048)
-                print("data received")
+                print("data2 received",data2)
                 data2 = data2.decode('utf-8')
-                print("data decoded")
+                print("data2 decoded",data2)
                 jason2 = json.loads(data2)
-                print("data loaded")
+                print("data2 loaded")
                 print('received from client' + str(all_addresses[1]) + ': ', jason2)
-                parameterother['node'+ str(othernode(node)[1])]['voltage'].insert(c,jason2['voltage'][c])
+                parameterother['node'+ str(othernode(node)[1])]['voltage'].insert(b,jason2['voltage'][b])
                 print(parameterother)
-                c = c+1
-                #print(c)
+                b = b+1
+                #print(b)
             except Exception as msg:
-                #time.sleep(2)
                 #lock.release()
+                #time.sleep(2)
                 #print(msg)
                 continue
             
-    if x == 6:
+    if x == 4:
         s1 = socket.socket()
         hostport = othernodeaddr(node)[0]
         while True:
             try:
+                time.sleep(15)
                 s1.connect(hostport)
                 jasonstr = json.dumps(parameter)
                 s1.send(str.encode(jasonstr))
+                print("sent to server "+str(hostport),jasonstr)
+                #s.close()
+            except Exception as msg:
+                #time.sleep(2)
+                #print(msg)
+                continue
+            else:
+                break
+        c = 0
+        while c < 5:
+            if len(parameter['voltage']) == c+2:
+                jasonstr = json.dumps(parameter)
+                s1.send(str.encode(jasonstr))
+                print("sent to SERVER "+str(hostport),jasonstr)
+                c = c+1
+                #print(d)
+            else:
+                continue
+                
+            
+    if x == 5:
+        s2 = socket.socket()
+        hostport = othernodeaddr(node)[1]
+        while True:
+            try:
+                time.sleep(15)
+                s2.connect(hostport)
+                jasonstr = json.dumps(parameter)
+                s2.send(str.encode(jasonstr))
                 print("sent to server "+str(hostport),jasonstr)
                 #s.close()
             except Exception as msg:
@@ -132,58 +163,32 @@ def work():
         while d < 5:
             if len(parameter['voltage']) == d+2:
                 jasonstr = json.dumps(parameter)
-                s1.send(str.encode(jasonstr))
-                print("sent to server "+str(hostport),jasonstr)
+                s2.send(str.encode(jasonstr))
+                print("sent to SERVER "+str(hostport),jasonstr)
                 d = d+1
-                #print(d)
-            else:
-                continue
-                
-            
-    if x == 5:
-        s2 = socket.socket()
-        hostport = othernodeaddr(node)[1]
-        while True:
-            try:
-                s2.connect(hostport)
-                jasonstr = json.dumps(parameter)
-                s2.send(str.encode(jasonstr))
-                print("sent to server "+str(hostport),jasonstr)
-                #s.close()
-            except Exception as msg:
-                #time.sleep(2)
-                #print(msg)
-                continue
-            else:
-                break
-        e = 0
-        while e < 5:
-            if len(parameter['voltage']) == e+2:
-                jasonstr = json.dumps(parameter)
-                s2.send(str.encode(jasonstr))
-                print("sent to server "+str(hostport),jasonstr)
-                e = e+1
                 #print(e)
             else:
                 continue
 
                 
-    if x == 4:
-        f = 0
-        while f < 5:
-            #time.sleep(5)
+    if x == 6:
+        e = 0
+        while e < 5:
+            #print('e value is ',e)
+            if e == 0:
+                time.sleep(15)
             try:
                 #lock.acquire()
-                currentnode = parameter['voltage'][f]
+                currentnode = parameter['voltage'][e]
                 #print("the voltage now is: ",currentnode)
-                connectednodes = parameterother['node'+ str(othernode(node)[0])]['voltage'][f] + parameterother['node'+ str(othernode(node)[1])]['voltage'][f] 
+                connectednodes = parameterother['node'+ str(othernode(node)[0])]['voltage'][e] + parameterother['node'+ str(othernode(node)[1])]['voltage'][e] 
                 #print("the sum of othe voltage is: ",connectednodes)
                 newvalue = currentnode + 2*connectednodes
                 #print("owyeah")
-                parameter['voltage'].insert(f+1,newvalue)
+                parameter['voltage'].insert(e+1,newvalue)
                 #print("go get it")
-                f = f+1
-                #print(f)
+                e = e+1
+                #print('e value is ',e)
                 #lock.release()
             except Exception as msg:
                 #lock.release()

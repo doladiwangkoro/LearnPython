@@ -5,7 +5,9 @@ Created on Thu Sep 14 19:34:12 2017
 @author: D M Dolaputra
 """
 
-def main_node(thenode):
+"""Please continue myu for projection"""
+
+def main(thenode):
 
     import socket
     import threading
@@ -21,7 +23,7 @@ def main_node(thenode):
     all_connections = [] #all connection from the connected nodes (to perform server-client data transfer)
     all_client_sockets = [] #sockets prepared for a client to connect to multiple servers
     node = 'node'+str(thenode) #observed node
-    num_iteration = 1000 #expected number of iterations
+    num_iteration = 15 #expected number of iterations
     
     #this node initial parameters (according to input)
     parameter = {
@@ -42,12 +44,21 @@ def main_node(thenode):
     alpha = 0.1485
     beta = 0.0056
     gamma = 0.005
+    delta = 0
     
     #Generators
     max_gen = [10000, 0, 0, 0]
     
     #Loads
     max_load = [0, 5000, 0, 0]
+    
+    #Maximum Power Transfer Capabitlity
+    all_max_power = {
+            'node1':[0,100,0,0],
+            'node2':[100,0,0,0],
+            'node3':[0,0,0,0],
+            'node4':[0,0,0,0],
+            }
     
     #quadratic coefficient
     a_n = [0.45, 0.36, 0, 0]
@@ -73,6 +84,9 @@ def main_node(thenode):
     
     #calling conductivity
     conductivity = all_conductivity[node]
+    
+    #calling maximum power
+    max_power = all_max_power[node]
     
     #counting how many connections
     def count_one():
@@ -114,14 +128,32 @@ def main_node(thenode):
                 other.append(i+1)
         return other
     
+    def insert_myu_thisnode(n):
+        parameter['myu']={}
+        for i in othernode(n):
+            parameter['myu']['myu'+str(n[4])+str(i)] = [0]
+        return parameter
+    
+    insert_myu_thisnode(node)
+    print(parameter)
+
+    def call_this_myu(i):
+        return parameter['myu']['myu'+str(node[4])+str(i)]        
+    
     #preparing storage for other connected nodes' parameter
     for i in othernode(node):
-        parameterother['node'+ str(i)] = {
-            'voltage':[],
-            'power':[],
-            'lambda':[]
-            }
-            
+        for j in othernode(node):
+            parameterother['node'+ str(i)] = {
+                'voltage':[],
+                'power':[],
+                'lambda':[],
+                }
+            parameterother['node'+ str(i)]['myu'+str(j)+str(node[4])] = []
+    print(parameterother)
+    
+    def call_other_myu(i):
+        return parameterother['node'+ str(i)]['myu'+str(i)+str(node[4])]
+        
     #producing list of other connected nodes' address
     def othernodeaddr(n):
         other = []
@@ -200,7 +232,10 @@ def main_node(thenode):
             parameterother['node'+ str(othernode(node)[z])]['voltage'].insert(i,jason1[0]['voltage'][i])
             parameterother['node'+ str(othernode(node)[z])]['lambda'].insert(i,jason1[0]['lambda'][i])
             parameterother['node'+ str(othernode(node)[z])]['power'].insert(i,jason1[0]['power'][i])
-            #print(parameterother)
+            for zm in othernode(node):
+                call_other_myu(zm).insert(i,jason1[0]['myu']['myu'+str(zm)+str(node[4])][i])
+                
+            
         
         #Calculation part
 
@@ -208,6 +243,9 @@ def main_node(thenode):
         oldlambda = parameter['lambda'][i]
         oldvoltage = parameter['voltage'][i]
         oldpower = parameter['power'][i]
+        oldmyu = []
+        for om in othernode(node):
+            oldmyu.append(call_this_myu(om)[i])
         
         #Lambda Calculation
         sum_cond = 0
@@ -218,11 +256,15 @@ def main_node(thenode):
         for y2 in othernode(node):
             sum_lambda_times_cond = sum_lambda_times_cond + parameterother['node'+str(y2)]['lambda'][i]*conductivity[y2-1]
         
+        sum_diffmyu_times_cond = 0
+        for y4 in othernode(node):
+            sum_diffmyu_times_cond = sum_diffmyu_times_cond + conductivity[y2-1]*(call_this_myu(y4)[i]-call_other_myu(y4)[i])
+        
         sum_volt_diff_times_cond = 0
         for y3 in othernode(node):
-            sum_volt_diff_times_cond = sum_volt_diff_times_cond + conductivity[y3-1]*(oldvoltage-parameterother['node'+str(y3)]['voltage'][i])
+            sum_volt_diff_times_cond = sum_volt_diff_times_cond + conductivity[y3-1]*(oldvoltage-parameterother['node'+str(y2)]['voltage'][i])
             
-        newlambda = oldlambda - beta*(oldlambda*sum_cond - sum_lambda_times_cond) - alpha*(oldpower - max_load[nodeindex(node)] - sum_volt_diff_times_cond)
+        newlambda = oldlambda - beta*(oldlambda*sum_cond - sum_lambda_times_cond) + sum_diffmyu_times_cond - alpha*(oldpower - max_load[nodeindex(node)] - sum_volt_diff_times_cond)
         parameter['lambda'].insert(i+1,newlambda)
         
         
@@ -239,8 +281,13 @@ def main_node(thenode):
         #Voltage Calculation
         newvoltage = oldvoltage - gamma*(-oldpower + max_load[nodeindex(node)] + sum_volt_diff_times_cond)
         parameter['voltage'].insert(i+1,newvoltage)
-            
         
+        #Myu Calculation
+        newmyu = []
+        for y5 in range(len(oldmyu)):
+            newmyu.append(oldmyu[y5] - delta*(max_power[othernode(node)[y5]-1]-conductivity[othernode(node)[y5]-1]*(oldvoltage-parameterother['node'+str(othernode(node)[y5])]['voltage'][i])))
+        for y6 in range(len(newmyu)):
+            call_this_myu(othernode(node)[y6]).insert(i+1,newmyu[y6])
         #Transmitting updated parameters to the neighboring nodes
         for x in range(len((all_client_sockets))):
             jasonstr = (json.dumps(parameter)+',')
@@ -252,3 +299,6 @@ def main_node(thenode):
     print('voltage: ',parameter['voltage'][i])
     print('power: ',parameter['power'][i])
     print('lambda: ',parameter['lambda'][i])
+    print('myu: ',parameter['myu'])
+    
+    
