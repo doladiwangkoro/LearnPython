@@ -16,6 +16,7 @@ def main(thenode):
     from queue import Queue
     from ast import literal_eval as tup
     
+    
     t = 0 #delay time to avoid conflicting data
     t1 = 0
     queue = Queue()
@@ -23,10 +24,11 @@ def main(thenode):
     all_connections = [] #all connection from the connected nodes (to perform server-client data transfer)
     all_client_sockets = [] #sockets prepared for a client to connect to multiple servers
     node = 'node'+str(thenode) #observed node
-    num_iteration = 15 #expected number of iterations
+    num_iteration = 1000 #expected number of iterations
     
     #this node initial parameters (according to input)
     parameter = {
+            'node index':[thenode],
             'voltage':[0],
             'power':[0],
             'lambda':[0]
@@ -34,9 +36,9 @@ def main(thenode):
     
     #conductivity for each connection. The 2nd element in 'node1' means conductivity between node 1 and 2
     all_conductivity = {
-            'node1':[0,100,0,0],
-            'node2':[100,0,0,0],
-            'node3':[0,0,0,0],
+            'node1':[0,100,100,0],
+            'node2':[100,0,100,0],
+            'node3':[100,100,0,0],
             'node4':[0,0,0,0],
             }
     
@@ -44,33 +46,33 @@ def main(thenode):
     alpha = 0.1485
     beta = 0.0056
     gamma = 0.005
-    delta = 0
+    delta = 0.001
     
     #Generators
     max_gen = [10000, 0, 0, 0]
     
     #Loads
-    max_load = [0, 5000, 0, 0]
+    max_load = [0, 5000, 2000, 0]
     
     #Maximum Power Transfer Capabitlity
     all_max_power = {
-            'node1':[0,100,0,0],
-            'node2':[100,0,0,0],
-            'node3':[0,0,0,0],
+            'node1':[0,10000,10000,0],
+            'node2':[10000,0,10000,0],
+            'node3':[1000,1000,0,0],
             'node4':[0,0,0,0],
             }
     
     #quadratic coefficient
-    a_n = [0.45, 0.36, 0, 0]
+    a_n = [0.45, 0.36, 0.50, 0]
     
     #linear coefficient
-    b_n = [100, 10, 0, 0]
+    b_n = [100, 10, 10, 0]
     
     #json for storing other connected nodes' parameters
     parameterother = {}
     
     # All nodes' addresses 
-    addresses = [('127.0.0.1',12345), ('127.0.0.1',23456), ('127.0.0.1',34567), ('127.0.0.1',45678)]
+    addresses = [('127.0.0.1',12345), ('127.0.0.2',23456), ('127.0.0.3',34567), ('127.0.0.4',45678)]
     
     all_connectivity = {
             'node1':[0,1,0,0],
@@ -142,17 +144,15 @@ def main(thenode):
     
     #preparing storage for other connected nodes' parameter
     for i in othernode(node):
-        for j in othernode(node):
-            parameterother['node'+ str(i)] = {
-                'voltage':[],
-                'power':[],
-                'lambda':[],
-                }
-            parameterother['node'+ str(i)]['myu'+str(j)+str(node[4])] = []
+        parameterother['node'+ str(i)] = {
+            'voltage':[],
+            'power':[],
+            'lambda':[],
+            }
+        parameterother['node'+ str(i)]['myu'+str(i)+str(node[4])] = []
     print(parameterother)
     
-    def call_other_myu(i):
-        return parameterother['node'+ str(i)]['myu'+str(i)+str(node[4])]
+    
         
     #producing list of other connected nodes' address
     def othernodeaddr(n):
@@ -186,6 +186,7 @@ def main(thenode):
                 all_addresses.append(addr)
                 all_connections.append(conn)
                 print('Got connection from: ',addr)
+                #print('The connection is: ',conn)
                 
         #clients part
         for j in range(count_one()):         
@@ -229,11 +230,14 @@ def main(thenode):
             jason1 = tup(data1)
             #print("data1loaded")
             #print('received from client' + str(all_addresses[z]) + ': ', jason1)
-            parameterother['node'+ str(othernode(node)[z])]['voltage'].insert(i,jason1[0]['voltage'][i])
-            parameterother['node'+ str(othernode(node)[z])]['lambda'].insert(i,jason1[0]['lambda'][i])
-            parameterother['node'+ str(othernode(node)[z])]['power'].insert(i,jason1[0]['power'][i])
-            for zm in othernode(node):
-                call_other_myu(zm).insert(i,jason1[0]['myu']['myu'+str(zm)+str(node[4])][i])
+            
+            def call_other_myu(i):
+                return parameterother['node'+ str(i)]['myu'+str(i)+str(node[4])]
+    
+            parameterother['node'+ str(jason1[0]['node index'][0])]['voltage'].insert(i,jason1[0]['voltage'][i])
+            parameterother['node'+ str(jason1[0]['node index'][0])]['lambda'].insert(i,jason1[0]['lambda'][i])
+            parameterother['node'+ str(jason1[0]['node index'][0])]['power'].insert(i,jason1[0]['power'][i])
+            call_other_myu(jason1[0]['node index'][0]).insert(i,jason1[0]['myu']['myu'+str(jason1[0]['node index'][0])+str(node[4])][i])
                 
             
         
@@ -258,13 +262,13 @@ def main(thenode):
         
         sum_diffmyu_times_cond = 0
         for y4 in othernode(node):
-            sum_diffmyu_times_cond = sum_diffmyu_times_cond + conductivity[y2-1]*(call_this_myu(y4)[i]-call_other_myu(y4)[i])
+            sum_diffmyu_times_cond = sum_diffmyu_times_cond + conductivity[y4-1]*(call_this_myu(y4)[i]-call_other_myu(y4)[i])
         
         sum_volt_diff_times_cond = 0
         for y3 in othernode(node):
             sum_volt_diff_times_cond = sum_volt_diff_times_cond + conductivity[y3-1]*(oldvoltage-parameterother['node'+str(y2)]['voltage'][i])
             
-        newlambda = oldlambda - beta*(oldlambda*sum_cond - sum_lambda_times_cond) + sum_diffmyu_times_cond - alpha*(oldpower - max_load[nodeindex(node)] - sum_volt_diff_times_cond)
+        newlambda = oldlambda - beta*((oldlambda*sum_cond - sum_lambda_times_cond) + sum_diffmyu_times_cond) - alpha*(oldpower - max_load[nodeindex(node)] - sum_volt_diff_times_cond)
         parameter['lambda'].insert(i+1,newlambda)
         
         
@@ -286,6 +290,10 @@ def main(thenode):
         newmyu = []
         for y5 in range(len(oldmyu)):
             newmyu.append(oldmyu[y5] - delta*(max_power[othernode(node)[y5]-1]-conductivity[othernode(node)[y5]-1]*(oldvoltage-parameterother['node'+str(othernode(node)[y5])]['voltage'][i])))
+            if newmyu[y5] < 0:
+                newmyu[y5] = 0
+            else:
+                newmyu[y5] = newmyu[y5]
         for y6 in range(len(newmyu)):
             call_this_myu(othernode(node)[y6]).insert(i+1,newmyu[y6])
         #Transmitting updated parameters to the neighboring nodes
@@ -299,6 +307,7 @@ def main(thenode):
     print('voltage: ',parameter['voltage'][i])
     print('power: ',parameter['power'][i])
     print('lambda: ',parameter['lambda'][i])
-    print('myu: ',parameter['myu'])
+    for y7 in othernode(node):
+        print('myu'+str(thenode)+str(y7)+': ',call_this_myu(y7)[i])
     
     
